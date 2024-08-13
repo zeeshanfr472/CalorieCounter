@@ -19,12 +19,12 @@ def get_gemini_response(input_prompt, image):
         st.error(f"An error occurred: {e}")
         return None
 
-def input_image_setup(uploaded_file):
+def input_image_setup(uploaded_file, mime_type):
     if uploaded_file is not None:
         bytes_data = uploaded_file.getvalue()
         image_parts = [
             {
-                "mime_type": uploaded_file.type,
+                "mime_type": mime_type,  # Use the passed mime_type
                 "data": bytes_data
             }
         ]
@@ -134,7 +134,7 @@ st.markdown(
     """, unsafe_allow_html=True
 )
 
-st.header("Gemini Health App")
+st.header("Health App by Zeeshan Faraz")
 
 st.info("Upload an image of your meal or use the camera to take a photo. Click the button to get nutritional information.")
 
@@ -147,12 +147,12 @@ with col1:
 
     uploaded_file = None
     camera_image = None
+    mime_type = None
 
     if upload_option == "Upload an Image":
         uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-        image = ""
-
         if uploaded_file is not None:
+            mime_type = uploaded_file.type
             image = Image.open(uploaded_file)
             image = preprocess_image(image)  # Optional preprocessing
             st.image(image, caption="Uploaded Image.", use_column_width=True)
@@ -161,7 +161,10 @@ with col1:
         camera_image = st.camera_input("Take a photo")
 
         if camera_image is not None:
-            image = Image.open(camera_image)
+            image_bytes = io.BytesIO(camera_image.getvalue())
+            mime_type = "image/jpeg"  # Assuming JPEG for camera input
+            image_data = input_image_setup(io.BytesIO(image_bytes.getvalue()), mime_type)
+            image = Image.open(image_data[0]["data"])
             image = preprocess_image(image)  # Optional preprocessing
             st.image(image, caption="Captured Image.", use_column_width=True)
 
@@ -207,10 +210,9 @@ If exact calorie counts cannot be determined, use general estimates based on sta
 if submit:
     if uploaded_file is not None or camera_image is not None:
         if uploaded_file is not None:
-            image_data = input_image_setup(uploaded_file)
+            image_data = input_image_setup(uploaded_file, mime_type)
         else:
-            image_bytes = io.BytesIO(camera_image.getvalue())
-            image_data = input_image_setup(image_bytes)
+            image_data = input_image_setup(io.BytesIO(camera_image.getvalue()), mime_type)
 
         with st.spinner('Processing...'):
             response = get_gemini_response(prompt, image_data)
