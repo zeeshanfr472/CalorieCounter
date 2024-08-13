@@ -145,6 +145,9 @@ with col1:
     # Option for image upload or camera input
     upload_option = st.selectbox("Choose image source", ["Upload an Image", "Take a Photo"])
 
+    uploaded_file = None
+    camera_image = None
+
     if upload_option == "Upload an Image":
         uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
         image = ""
@@ -207,7 +210,7 @@ if submit:
             image_data = input_image_setup(uploaded_file)
         else:
             image_bytes = io.BytesIO(camera_image.getvalue())
-            image_data = input_image_setup(io.BytesIO(image_bytes.getvalue()))
+            image_data = input_image_setup(image_bytes)
 
         with st.spinner('Processing...'):
             response = get_gemini_response(prompt, image_data)
